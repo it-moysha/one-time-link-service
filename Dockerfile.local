@@ -1,0 +1,19 @@
+FROM node:20.11.0-alpine as build
+
+WORKDIR /app
+COPY . .
+
+RUN npm ci
+RUN npx prisma generate
+RUN node_modules/.bin/tsc
+
+FROM node:20.11.0-alpine AS production
+
+ARG APP
+
+WORKDIR /app
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./
+
+CMD ["/bin/sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+

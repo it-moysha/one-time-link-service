@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  one-time-service-api:
+    container_name: one-time-service-api
+    image: one-time-service-api
+    restart: unless-stopped
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    networks:
+      - api
+      - postgresql
+    ports:
+      - ${PORT}:${PORT}
+    build:
+      context: .
+      dockerfile: ./Dockerfile.local
+      args:
+        APP: one-time-service-api
+    depends_on:
+      - postgresql
+
+  postgresql:
+    container_name: one-time-service-postgresql
+    image: postgres:16.1-alpine
+    restart: unless-stopped
+    volumes:
+      - postgresql:/data/postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: one-time-service
+      PGDATA: /data/postgres
+    networks:
+      - postgresql
+    ports:
+      - "${POSTGRES_PORTS:-5432:5432}"
+
+  pgadmin:
+    container_name: one-time-service-pgadmin
+    image: dpage/pgadmin4:7
+    restart: unless-stopped
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-postgres@test.io}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-postgres}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    networks:
+      - postgresql
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+
+volumes:
+  postgresql:
+    name: one-time-service-postgresql
+    driver: local
+  pgadmin:
+    name: one-time-service-pgadmin
+    driver: local
+
+networks:
+  api:
+    name: one-time-service-api
+  postgresql:
+    name: one-time-service-postgresql
